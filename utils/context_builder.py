@@ -21,10 +21,6 @@ def build_financial_context(ticker: str, raw_data: dict[str, Any]) -> dict[str, 
     }
 
 
-def build_news_context(ticker: str, headlines: list[str]) -> dict[str, Any]:
-    return {"ticker": ticker, "headlines": headlines}
-
-
 def build_valuation_context(
     ticker: str, raw_financial: dict[str, Any]
 ) -> dict[str, Any]:

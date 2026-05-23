@@ -167,31 +167,39 @@ def _extract_8k_events(submissions: dict) -> list[dict[str, str]]:
     return events
 
 
+_8K_ITEM_MAP: dict[str, str] = {
+    "1.01": "Material definitive agreement",
+    "1.02": "Termination of material agreement",
+    "1.03": "Bankruptcy or receivership",
+    "2.01": "Acquisition or disposition of assets",
+    "2.02": "Results of operations (earnings)",
+    "2.03": "Material direct financial obligation",
+    "2.04": "Triggering events affecting obligations",
+    "2.05": "Costs associated with exit activities",
+    "2.06": "Material impairment",
+    "3.01": "Delisting or failure to satisfy listing rule",
+    "3.03": "Material modification to rights of shareholders",
+    "4.01": "Changes in registrant's certifying accountant",
+    "4.02": "Non-reliance on prior financial statements",
+    "5.01": "Changes in control",
+    "5.02": "Departure/appointment of directors or officers",
+    "5.03": "Amendments to articles of incorporation",
+    "5.05": "Shareholder action",
+    "7.01": "Regulation FD disclosure",
+    "8.01": "Other events",
+    "9.01": "Financial statements and exhibits",
+}
+
+_RISK_SIGNALS: frozenset[str] = frozenset([
+    "risk", "may", "could", "might", "uncertain", "depend", "rely",
+    "competition", "regulation", "fail", "loss", "decline", "adverse",
+    "volatile", "fluctuat", "negatively", "harm", "impair", "disrupt",
+])
+
+
 def _describe_8k_item(item_code: str) -> str:
     """Map 8-K item codes to human-readable descriptions."""
-    _ITEM_MAP = {
-        "1.01": "Material definitive agreement",
-        "1.02": "Termination of material agreement",
-        "1.03": "Bankruptcy or receivership",
-        "2.01": "Acquisition or disposition of assets",
-        "2.02": "Results of operations (earnings)",
-        "2.03": "Material direct financial obligation",
-        "2.04": "Triggering events affecting obligations",
-        "2.05": "Costs associated with exit activities",
-        "2.06": "Material impairment",
-        "3.01": "Delisting or failure to satisfy listing rule",
-        "3.03": "Material modification to rights of shareholders",
-        "4.01": "Changes in registrant's certifying accountant",
-        "4.02": "Non-reliance on prior financial statements",
-        "5.01": "Changes in control",
-        "5.02": "Departure/appointment of directors or officers",
-        "5.03": "Amendments to articles of incorporation",
-        "5.05": "Shareholder action",
-        "7.01": "Regulation FD disclosure",
-        "8.01": "Other events",
-        "9.01": "Financial statements and exhibits",
-    }
-    for code, desc in _ITEM_MAP.items():
+    for code, desc in _8K_ITEM_MAP.items():
         if code in item_code:
             return desc
     return item_code if item_code else "Material event"
@@ -292,11 +300,6 @@ def _parse_risk_factor_headings(html: str) -> list[str]:
     candidates = re.split(r"(?<=[.?!])\s+(?=[A-Z])", section)
 
     headings: list[str] = []
-    _RISK_SIGNALS = frozenset([
-        "risk", "may", "could", "might", "uncertain", "depend", "rely",
-        "competition", "regulation", "fail", "loss", "decline", "adverse",
-        "volatile", "fluctuat", "negatively", "harm", "impair", "disrupt",
-    ])
 
     for candidate in candidates[:50]:
         candidate = candidate.strip().strip(".")
