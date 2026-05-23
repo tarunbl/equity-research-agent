@@ -66,7 +66,7 @@ async def _fetch_risk_intelligence(
     from tools.sec_edgar import get_sec_intelligence
     from tools.finnhub  import get_insider_intelligence
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     try:
         sec_data, insider_data = await asyncio.gather(

@@ -98,6 +98,22 @@ def high_risk():
     }
 
 
+@pytest.fixture
+def sample_valuation():
+    return {
+        "ticker": "AAPL",
+        "pe_ratio": 28.4,
+        "pb_ratio": 45.2,
+        "ev_ebitda": 22.1,
+        "peg_ratio": 2.1,
+        "dcf_implied_value": 195.0,
+        "current_price": 185.0,
+        "upside_pct": 5.4,
+        "valuation_note": "Slight premium to fair value.",
+        "confidence": 0.88,
+    }
+
+
 # ── build_financial_context ───────────────────────────────────────────────────
 
 class TestBuildFinancialContext:
@@ -123,54 +139,54 @@ class TestConflictingSignals:
     """Verify all four healthy/weak × positive/negative combinations."""
 
     def test_healthy_financial_positive_news_no_conflict(
-        self, healthy_financial, positive_news
+        self, healthy_financial, positive_news, sample_valuation
     ):
-        ctx = build_risk_context(healthy_financial, positive_news)
+        ctx = build_risk_context(healthy_financial, positive_news, sample_valuation)
         assert ctx["conflicting_signals"] is False
 
     def test_healthy_financial_negative_news_is_conflict(
-        self, healthy_financial, negative_news
+        self, healthy_financial, negative_news, sample_valuation
     ):
-        ctx = build_risk_context(healthy_financial, negative_news)
+        ctx = build_risk_context(healthy_financial, negative_news, sample_valuation)
         assert ctx["conflicting_signals"] is True
 
     def test_weak_financial_negative_news_no_conflict(
-        self, weak_financial, negative_news
+        self, weak_financial, negative_news, sample_valuation
     ):
-        ctx = build_risk_context(weak_financial, negative_news)
+        ctx = build_risk_context(weak_financial, negative_news, sample_valuation)
         assert ctx["conflicting_signals"] is False
 
     def test_weak_financial_positive_news_is_conflict(
-        self, weak_financial, positive_news
+        self, weak_financial, positive_news, sample_valuation
     ):
-        ctx = build_risk_context(weak_financial, positive_news)
+        ctx = build_risk_context(weak_financial, positive_news, sample_valuation)
         assert ctx["conflicting_signals"] is True
 
-    def test_surfaces_debt_to_equity_for_rules(self, healthy_financial, positive_news):
-        ctx = build_risk_context(healthy_financial, positive_news)
+    def test_surfaces_debt_to_equity_for_rules(self, healthy_financial, positive_news, sample_valuation):
+        ctx = build_risk_context(healthy_financial, positive_news, sample_valuation)
         assert ctx["debt_to_equity"] == healthy_financial["debt_to_equity"]
 
-    def test_limits_headlines_to_five(self, healthy_financial, positive_news):
+    def test_limits_headlines_to_five(self, healthy_financial, positive_news, sample_valuation):
         positive_news["top_headlines"] = [{"headline": f"h{i}"} for i in range(10)]
-        ctx = build_risk_context(healthy_financial, positive_news)
+        ctx = build_risk_context(healthy_financial, positive_news, sample_valuation)
         assert len(ctx["top_headlines"]) == 5
 
 
 # ── build_recommendation_context ─────────────────────────────────────────────
 
 class TestBuildRecommendationContext:
-    def test_surfaces_risk_level(self, healthy_financial, low_risk):
-        ctx = build_recommendation_context(healthy_financial, low_risk)
+    def test_surfaces_risk_level(self, healthy_financial, low_risk, sample_valuation):
+        ctx = build_recommendation_context(healthy_financial, low_risk, sample_valuation)
         assert ctx["risk_level"] == "low"
 
-    def test_does_not_include_raw_news(self, healthy_financial, low_risk):
-        ctx = build_recommendation_context(healthy_financial, low_risk)
+    def test_does_not_include_raw_news(self, healthy_financial, low_risk, sample_valuation):
+        ctx = build_recommendation_context(healthy_financial, low_risk, sample_valuation)
         # News headlines should NOT be in recommendation context
         assert "top_headlines" not in ctx
         assert "negative_pct" not in ctx
 
-    def test_includes_key_financial_metrics(self, healthy_financial, low_risk):
-        ctx = build_recommendation_context(healthy_financial, low_risk)
+    def test_includes_key_financial_metrics(self, healthy_financial, low_risk, sample_valuation):
+        ctx = build_recommendation_context(healthy_financial, low_risk, sample_valuation)
         assert "revenue_growth_pct" in ctx
         assert "profit_margin_pct" in ctx
         assert "debt_to_equity" in ctx
@@ -180,24 +196,24 @@ class TestBuildRecommendationContext:
 
 class TestBuildFormatterContext:
     def test_includes_all_sections(
-        self, healthy_financial, positive_news, low_risk
+        self, healthy_financial, positive_news, sample_valuation, low_risk
     ):
         rec = {"ticker": "AAPL", "signal": "buy", "conviction": "high",
                "time_horizon": "12 months", "rationale": "Strong growth.",
                "bull_case": "Services boom.", "bear_case": "Regulation.",
                "key_catalysts": ["AI"], "key_risks": ["China"],
                "confidence": 0.9}
-        ctx = build_formatter_context(healthy_financial, positive_news, low_risk, rec)
-        for key in ["ticker", "company_name", "financial", "news", "risk", "recommendation"]:
+        ctx = build_formatter_context(healthy_financial, positive_news, sample_valuation, low_risk, rec)
+        for key in ["ticker", "company_name", "financial", "news", "valuation", "risk", "recommendation"]:
             assert key in ctx
 
     def test_formatter_receives_full_financial(
-        self, healthy_financial, positive_news, low_risk
+        self, healthy_financial, positive_news, sample_valuation, low_risk
     ):
         rec = {"ticker": "AAPL", "signal": "buy", "conviction": "high",
                "time_horizon": "12 months", "rationale": "r",
                "bull_case": "b", "bear_case": "b",
                "key_catalysts": [], "key_risks": [], "confidence": 0.9}
-        ctx = build_formatter_context(healthy_financial, positive_news, low_risk, rec)
+        ctx = build_formatter_context(healthy_financial, positive_news, sample_valuation, low_risk, rec)
         # Formatter should have full financial data, not a subset
         assert ctx["financial"]["gross_margin_pct"] == healthy_financial["gross_margin_pct"]

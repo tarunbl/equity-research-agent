@@ -111,6 +111,7 @@ class BaseAgent(ABC):
         user_message: str,
         context_for_rules: dict[str, Any] | None = None,
         force_escalate: bool = False,
+        system_prompt: str | None = None,
     ) -> Tuple[dict[str, Any], AgentMetrics]:
         """
         Full lifecycle LLM call:
@@ -140,7 +141,7 @@ class BaseAgent(ABC):
             model = self.model_config["default"]
 
         # ── First API call ────────────────────────────────────────────────────
-        response, latency_ms = await self._call_with_retry(model, user_message)
+        response, latency_ms = await self._call_with_retry(model, user_message, system_prompt)
         parsed               = self._extract_json(response.content[0].text)
 
         # Accumulate usage from all calls (may grow if confidence escalation triggers)
@@ -164,7 +165,7 @@ class BaseAgent(ABC):
                         f"threshold {self.confidence_threshold}"
                     )
                     esc_response, esc_latency = await self._call_with_retry(
-                        escalated_model, user_message
+                        escalated_model, user_message, system_prompt
                     )
                     # Accumulate — single metrics entry covers both calls
                     usage        = _add_usage(usage, _sum_usage(esc_response.usage))
@@ -192,7 +193,7 @@ class BaseAgent(ABC):
     # ── Internal helpers ──────────────────────────────────────────────────────
 
     async def _call_with_retry(
-        self, model: str, user_message: str
+        self, model: str, user_message: str, system_prompt: str | None = None
     ) -> Tuple[Any, float]:
         """
         Anthropic API call with exponential-backoff retry.
@@ -203,13 +204,14 @@ class BaseAgent(ABC):
         start = time.perf_counter()
         for attempt in range(MAX_RETRIES):
             try:
+                prompt   = system_prompt if system_prompt is not None else self.get_system_prompt()
                 response = await self.client.messages.create(
                     model      = model,
                     max_tokens = self.max_tokens,
                     system     = [
                         {
                             "type":          "text",
-                            "text":          self.get_system_prompt(),
+                            "text":          prompt,
                             "cache_control": {"type": "ephemeral"},
                         }
                     ],

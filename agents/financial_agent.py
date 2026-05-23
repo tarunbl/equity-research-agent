@@ -76,9 +76,8 @@ Output schema:
 
         # Fetch in thread pool — yfinance is blocking I/O
         try:
-            loop     = asyncio.get_event_loop()
             raw_data = await asyncio.wait_for(
-                loop.run_in_executor(None, get_financial_data, ticker),
+                asyncio.get_running_loop().run_in_executor(None, get_financial_data, ticker),
                 timeout=YFINANCE_TIMEOUT_SECS,
             )
         except asyncio.TimeoutError:
