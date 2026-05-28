@@ -92,12 +92,16 @@ equity-research-agent/
 │   ├── base_agent.py            # Abstract base: routing, caching, retry, escalation
 │   ├── financial_agent.py       # Extracts & validates financial metrics
 │   ├── news_agent.py            # Classifies headline sentiment
+│   ├── valuation_agent.py       # Price context, multiples, analyst consensus
 │   ├── risk_agent.py            # Multi-axis risk analysis
 │   ├── recommendation_agent.py  # Buy / Hold / Sell with rationale
-│   └── formatter_agent.py       # Assembles and renders final report
+│   ├── formatter_agent.py       # Assembles and renders final report
+│   └── scorer.py                # Deterministic signal scorer (no LLM — see ARCHITECTURE)
 ├── tools/
 │   ├── financial_api.py         # Mock financial data (AAPL, TSLA, GME, NVDA)
-│   └── search_tool.py           # Mock news headlines (4 sentiment profiles)
+│   ├── search_tool.py           # Mock news headlines (4 sentiment profiles)
+│   ├── finnhub.py               # Finnhub: multi-source news + insider transactions
+│   └── sec_edgar.py             # SEC EDGAR: 10-K risk factors + recent 8-K filings
 ├── models/
 │   └── schemas.py               # Pydantic v2 output schemas for all agents
 ├── memory/
@@ -105,7 +109,8 @@ equity-research-agent/
 ├── monitoring/
 │   └── logger.py                # Token tracking, cost estimation, Rich summary
 ├── utils/
-│   └── context_builder.py       # Scopes min-sufficient context per agent
+│   ├── context_builder.py       # Scopes min-sufficient context per agent
+│   └── finbert.py               # Optional: FinBERT sentiment classifier (see below)
 ├── tests/
 │   ├── test_schemas.py          # Pydantic validation tests
 │   ├── test_context_builder.py  # Context scoping unit tests
@@ -116,6 +121,18 @@ equity-research-agent/
 │   └── workflows/ci.yml         # GitHub Actions: lint + test
 └── requirements.txt
 ```
+
+### Optional: FinBERT sentiment
+
+`utils/finbert.py` provides an alternative sentiment classifier for the News Agent using [ProsusAI/finbert](https://huggingface.co/ProsusAI/finbert) — a BERT model fine-tuned on financial text. It handles domain-specific phrasing ("guides lower", "misses estimates", "headwinds") more accurately than a general-purpose model.
+
+Install the optional dependencies to enable it:
+
+```bash
+pip install transformers torch   # ~500MB model download on first use
+```
+
+Without these packages, the News Agent falls back to Claude Haiku automatically. No code changes needed.
 
 ---
 

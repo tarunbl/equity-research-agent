@@ -119,6 +119,66 @@ The Python rendering layer (`rich`) handles terminal formatting. The LLM handles
 
 ---
 
+## Why the Signal Scorer Is Deterministic Python
+
+`agents/scorer.py` produces the BUY / HOLD / SELL signal using a weighted
+factor model — analyst rating, upside to target, risk level, momentum, insider
+activity, revenue growth, margin, earnings proximity. No LLM involved.
+
+The temptation is to let the Recommendation Agent decide the signal itself. I
+tried that first. The problem: the same inputs produced different signals on
+different runs depending on token sampling and reasoning paths. In finance,
+"the system said BUY yesterday and SELL today on identical data" is not
+acceptable.
+
+The split is:
+- `scorer.py` — **what** the signal is (deterministic, reproducible)
+- `recommendation_agent.py` — **why** it makes sense (LLM narrative, synthesis)
+
+LLMs are good at synthesis and explaining. They are not reliable for
+consistently applying specific quantitative rules. The deterministic scorer
+handles the former; the LLM handles the latter.
+
+---
+
+## Why There's a Valuation Agent
+
+The original four-agent pipeline (financial → news → risk → recommendation)
+issued a SELL on ELF. At the time, 16 Wall Street analysts rated it BUY with
+an 89% implied upside to their mean price target.
+
+The bug: without price context and analyst consensus, a stock trading at
+compressed multiples after a 63% drawdown looks the same as a fundamentally
+weak stock. The system had no way to distinguish "cheap because beaten-up"
+from "cheap because broken."
+
+`valuation_agent.py` was added in Phase 2 to give the risk and recommendation
+agents price context before they render judgment. It runs between the
+financial data collection and risk analysis stages.
+
+---
+
+## FinBERT vs Claude Haiku for Sentiment
+
+The News Agent has two paths for headline classification:
+
+1. **Claude Haiku** (default) — general-purpose, no extra dependencies, works
+   out of the box.
+2. **FinBERT** (optional) — `ProsusAI/finbert`, fine-tuned on financial text.
+   Handles domain-specific phrasing ("guides lower", "misses estimates",
+   "sequential deceleration") more accurately than a general model.
+
+The `finbert_available()` check in `news_agent.py` picks the path at runtime.
+If `transformers` and `torch` aren't installed, the pipeline falls back to
+Haiku silently.
+
+The tradeoff is real: FinBERT is ~500MB, requires a GPU or a slow CPU
+inference path, and adds two heavy dependencies to what is otherwise a lean
+API-calling pipeline. For a production system processing hundreds of tickers
+daily, the accuracy gain is worth it. For a single-ticker demo, Haiku is fine.
+
+---
+
 ## Trade-offs and Known Limitations
 
 **Mock data only:** The tools layer uses in-memory mock data. Connecting to real APIs (Alpha Vantage, Bloomberg, news feeds) is a straightforward extension but introduces rate limits, authentication, and data normalisation complexity.
