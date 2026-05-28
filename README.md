@@ -1,6 +1,6 @@
-# 📈 Equity Research Multi-Agent System
+# Equity Research Multi-Agent System
 
-> A production-grade multi-agent AI framework that generates structured equity research reports using intelligent model routing, parallel execution, and cost-optimised LLM orchestration — built on the Anthropic Claude API.
+> Five specialised agents research, analyse, and render a full equity brief for any stock ticker — financials, news sentiment, risk analysis, and a buy/hold/sell recommendation — in under 10 seconds.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
 ![Anthropic](https://img.shields.io/badge/Anthropic-Claude_API-D97757?style=flat)
@@ -9,15 +9,13 @@
 
 ---
 
-## 🎯 What It Does
+## What it does
 
-Given a stock ticker (`AAPL`, `TSLA`, `GME`, `NVDA`), the system spins up five specialised AI agents that work in parallel and in sequence to produce a full equity research brief — covering financials, news sentiment, risk analysis, and a buy/hold/sell recommendation — in under 10 seconds.
-
-**The key engineering challenge:** doing this intelligently and cheaply. Not every task needs the same model. A sentiment classifier doesn't need the same firepower as a risk analyst reconciling conflicting signals. This system routes each agent to the right model automatically, escalating to a stronger (and more expensive) model only when the task demands it.
+Given a stock ticker (`AAPL`, `TSLA`, `GME`, `NVDA`), the system runs five agents across four stages to produce a structured equity research brief. The core engineering question: which tasks actually need a powerful model, and which ones don't? A sentiment classifier doesn't need the same compute as a risk analyst reconciling conflicting signals. Each agent is routed to the cheapest model that can do its job, and escalates to a stronger one only when the data demands it.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
                         ┌─────────────────────────────┐
@@ -64,9 +62,9 @@ Given a stock ticker (`AAPL`, `TSLA`, `GME`, `NVDA`), the system spins up five s
 
 ---
 
-## ⚡ Intelligent Model Routing
+## Model routing
 
-This is the core design differentiator. Each agent is assigned the cheapest model capable of doing its job well. A stronger model is called **only when necessary**.
+Each agent runs on the cheapest model that can do its job. A stronger model fires only when a rule or confidence threshold is crossed.
 
 | Agent | Default Model | Escalates To | Escalation Trigger |
 |-------|--------------|--------------|-------------------|
@@ -76,19 +74,15 @@ This is the core design differentiator. Each agent is assigned the cheapest mode
 | Recommendation Agent | `claude-sonnet-4-6` | `claude-opus-4-6` | `risk_level == "high"` |
 | Formatter Agent | `claude-haiku-4-5` | `claude-sonnet-4-6` | Low confidence only |
 
-**Two-layer escalation strategy:**
+Two escalation layers:
 1. **Rule-based (pre-LLM):** Python checks raw data against domain thresholds — zero token cost.
 2. **Confidence-based (post-LLM):** If the model self-reports low confidence, the task re-runs on the stronger model.
 
-**Additional optimisations:**
-- Prompt caching on all system prompts (`cache_control: ephemeral`)
-- Strict per-agent `max_tokens` budgets
-- Minimum-sufficient context per agent (no full session dumps)
-- `asyncio.gather()` for parallel Stage 1 execution
+Other cost controls: prompt caching on all system prompts, strict per-agent `max_tokens` budgets, minimum-sufficient context per agent (no full session dumps), `asyncio.gather()` for parallel Stage 1 execution.
 
 ---
 
-## 🗂️ Project Structure
+## Project structure
 
 ```
 equity-research-agent/
@@ -117,7 +111,7 @@ equity-research-agent/
 │   ├── test_context_builder.py  # Context scoping unit tests
 │   └── test_escalation.py       # Escalation rule logic tests
 ├── docs/
-│   └── ARCHITECTURE.md          # Deep-dive design decisions
+│   └── ARCHITECTURE.md          # Design decisions and tradeoffs
 ├── .github/
 │   └── workflows/ci.yml         # GitHub Actions: lint + test
 └── requirements.txt
@@ -125,12 +119,12 @@ equity-research-agent/
 
 ---
 
-## 🚀 Quick Start
+## Quick start
 
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/equity-research-agent.git
+git clone https://github.com/tarunbl/equity-research-agent.git
 cd equity-research-agent
 python -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
@@ -141,13 +135,13 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Edit .env and add your Anthropic API key
+# Edit .env and add your ANTHROPIC_API_KEY
 ```
 
 ### 3. Run
 
 ```bash
-# Healthy company — no escalation (demonstrates normal routing)
+# Healthy company — no escalation (normal routing path)
 python main.py AAPL
 
 # Mixed signals — Risk agent escalates on conflicting data
@@ -162,7 +156,7 @@ python main.py NVDA
 
 ---
 
-## 📊 Sample Output
+## Sample output
 
 ```
 ╭─────────────────── Equity Research Agent — GME ──────────────────╮
@@ -190,43 +184,43 @@ python main.py NVDA
 
 ---
 
-## 🧠 Framework: 10-Step Agent Design
+## Design checklist
 
-This project implements a complete 10-step multi-agent design framework:
+Every concern in a production multi-agent system has a home in this codebase:
 
-| Step | Concept | Where It Lives |
-|------|---------|---------------|
-| 1 | Clear task definition | Each agent has one focused responsibility |
-| 2 | Right LLM for the task | `config.py` → `MODEL_ROUTING` |
-| 3 | System instructions | `get_system_prompt()` in each agent |
-| 4 | Agent logic & control flow | `agents/base_agent.py` + `main.py` pipeline |
-| 5 | Tool & API integration | `tools/financial_api.py`, `tools/search_tool.py` |
-| 6 | Memory (short-term) | `memory/session_store.py` — per-run session state |
-| 7 | Multi-agent coordination | DAG in `main.py`: parallel → sequential stages |
-| 8 | Test & validate | `tests/` — schema, escalation, context tests |
-| 9 | Monitor & feedback | `monitoring/logger.py` — token tracking, cost, latency |
-| 10 | Deploy-ready structure | `.env` config, `requirements.txt`, CI workflow |
-
----
-
-## 🔧 Extending the System
-
-**Add a new ticker:**  Add mock data to `tools/financial_api.py` and `tools/search_tool.py`.
-
-**Add a new agent:**  Extend `BaseAgent`, define `get_system_prompt()` and `run()`, register in `main.py`.
-
-**Connect real APIs:**  Replace `tools/financial_api.py` with Alpha Vantage / Yahoo Finance. Replace `tools/search_tool.py` with a real news API.
-
-**Change routing rules:**  All routing logic lives in `config.py` — no agent code changes needed.
+| Concern | Where it lives |
+|---------|---------------|
+| Task decomposition | One agent per responsibility — financial, news, risk, recommendation, format |
+| Model selection | `config.py` → `MODEL_ROUTING` |
+| System instructions | `get_system_prompt()` in each agent |
+| Control flow | `agents/base_agent.py` + `main.py` DAG |
+| Tool integration | `tools/financial_api.py`, `tools/search_tool.py` |
+| Short-term memory | `memory/session_store.py` — per-run session state |
+| Multi-agent coordination | Parallel Stage 1 via `asyncio.gather()`, sequential stages 2–4 |
+| Testing | `tests/` — schema, escalation, context scoping |
+| Observability | `monitoring/logger.py` — token tracking, cost, latency per agent |
+| Configuration | `.env` + `config.py`, no hardcoded values |
 
 ---
 
-## 📄 License
+## Extending the system
+
+**Add a new ticker:** Add mock data to `tools/financial_api.py` and `tools/search_tool.py`.
+
+**Add a new agent:** Extend `BaseAgent`, implement `get_system_prompt()` and `run()`, register in `main.py`.
+
+**Connect real APIs:** Replace `tools/financial_api.py` with Alpha Vantage / Yahoo Finance. Replace `tools/search_tool.py` with a real news API.
+
+**Change routing rules:** All routing logic lives in `config.py` — no agent code changes needed.
+
+---
+
+## License
 
 MIT — see [LICENSE](LICENSE)
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)

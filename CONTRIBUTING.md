@@ -5,7 +5,7 @@ Contributions are welcome — bug fixes, new tickers, real API integrations, or 
 ## Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/equity-research-agent.git
+git clone https://github.com/tarunbl/equity-research-agent.git
 cd equity-research-agent
 python -m venv venv
 source venv/bin/activate

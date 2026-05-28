@@ -10,7 +10,7 @@ Responsibilities
   3. Retry w/ backoff  — handles transient API errors
   4. Rule escalation   — pre-LLM Python rule check; zero token cost
   5. Confidence check  — post-LLM escalation on low self-reported confidence
-  6. JSON extraction   — robust multi-strategy parser
+  6. JSON extraction   — multi-strategy parser (code fence → raw JSON → regex)
   7. Usage logging     — one metrics entry per agent call (accumulates both
                          calls when confidence escalation triggers)
 

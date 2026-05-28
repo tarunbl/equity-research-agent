@@ -1,6 +1,6 @@
-# Architecture Deep-Dive
+# Architecture
 
-This document explains the key design decisions behind the Equity Research Multi-Agent System — the *why* behind the *what*.
+Design decisions behind the Equity Research Multi-Agent System.
 
 ---
 

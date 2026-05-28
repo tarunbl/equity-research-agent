@@ -1,7 +1,5 @@
 # Setup Guide
 
-Complete setup instructions for the Equity Research Multi-Agent System.
-
 ---
 
 ## Prerequisites
@@ -15,7 +13,7 @@ Complete setup instructions for the Equity Research Multi-Agent System.
 ## Step 1 — Clone and Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/equity-research-agent.git
+git clone https://github.com/tarunbl/equity-research-agent.git
 cd equity-research-agent
 
 # Create and activate a virtual environment (recommended)
